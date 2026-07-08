@@ -1,0 +1,1 @@
+#TODO: follow openjpeg's behavior for the CLI
