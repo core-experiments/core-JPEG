@@ -88,12 +88,8 @@ class SubBand:
         self.codeblock_h = cb_h
         self.block_origin_x = self.x0 // cb_w
         self.block_origin_y = self.y0 // cb_h
-        self.num_blocks_h = (
-            0 if self.width <= 0 else ceil_div(self.x1, cb_w) - self.block_origin_x
-        )
-        self.num_blocks_v = (
-            0 if self.height <= 0 else ceil_div(self.y1, cb_h) - self.block_origin_y
-        )
+        self.num_blocks_h = 0 if self.width <= 0 else ceil_div(self.x1, cb_w) - self.block_origin_x
+        self.num_blocks_v = 0 if self.height <= 0 else ceil_div(self.y1, cb_h) - self.block_origin_y
         self.blocks = []
         for ignored in range(self.num_blocks_v * self.num_blocks_h):
             self.blocks.append(CodeBlock(cb_w * cb_h))
@@ -139,9 +135,7 @@ class ResSubBand:
         self.subbands: list[SubBand] = []
 
         if level == 0:
-            self.subbands.append(
-                SubBand(x0, y0, x1, y1, level, True, cb_w, cb_h, T1_ORIENT_LL)
-            )
+            self.subbands.append(SubBand(x0, y0, x1, y1, level, True, cb_w, cb_h, T1_ORIENT_LL))
         else:
             if high_band_bounds is None:
                 low_x0, low_y0, low_x1, low_y1 = (

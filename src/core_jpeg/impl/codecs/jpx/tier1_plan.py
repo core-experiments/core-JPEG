@@ -89,12 +89,10 @@ def build_tier1_codeblock_plan(
             pass_type,
             codeblock_style,
         )
-        effective_passes, next_bitplane_plus_one, next_pass_type = (
-            advance_tier1_pass_state(
-                bitplane_plus_one,
-                pass_type,
-                segment.num_passes,
-            )
+        effective_passes, next_bitplane_plus_one, next_pass_type = advance_tier1_pass_state(
+            bitplane_plus_one,
+            pass_type,
+            segment.num_passes,
         )
         if effective_passes <= 0:
             break
@@ -105,9 +103,7 @@ def build_tier1_codeblock_plan(
                 bitplane_plus_one=bitplane_plus_one,
                 pass_type=pass_type,
                 raw_bypass=raw_bypass,
-                reset_contexts=bool(
-                    codeblock_style & JPX_CODEBLOCK_STYLE_RESET and not raw_bypass
-                ),
+                reset_contexts=bool(codeblock_style & JPX_CODEBLOCK_STYLE_RESET and not raw_bypass),
                 segmentation_symbols=bool(codeblock_style & JPX_CODEBLOCK_STYLE_SEGSYM),
                 vertical_stripe_causal=bool(codeblock_style & JPX_CODEBLOCK_STYLE_VSC),
             )

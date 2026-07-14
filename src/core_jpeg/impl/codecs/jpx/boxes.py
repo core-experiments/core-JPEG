@@ -273,9 +273,7 @@ class Jp2Parser:
                 precedence=precedence,
                 approximation=approximation,
                 enum_color_space=enum_color_space,
-                cielab=parse_jp2_cielab_parameters(payload)
-                if enum_color_space == 14
-                else None,
+                cielab=parse_jp2_cielab_parameters(payload) if enum_color_space == 14 else None,
             )
         if method == 2:
             return Jp2ColorSpecification(
@@ -376,9 +374,7 @@ def parse_jp2_component_mapping(
             if mapping_type not in {0, 1}:
                 raise JpegParseError("invalid JP2 component mapping type")
             if palette_column >= channel_count:
-                raise JpegParseError(
-                    "JP2 component mapping palette column out of range"
-                )
+                raise JpegParseError("JP2 component mapping palette column out of range")
             if mapping_type == 0 and palette_column != 0:
                 raise JpegParseError("invalid JP2 direct component mapping")
             if mapping_type == 1 and palette_column != index:

@@ -143,9 +143,7 @@ def decode(decoder: Any) -> bytes:
     return compose_rgb(decoder, comp_buf, comp_w)
 
 
-def compose_rgb(
-    decoder: Any, comp_buf: dict[int, list[int]], comp_w: dict[int, int]
-) -> bytes:
+def compose_rgb(decoder: Any, comp_buf: dict[int, list[int]], comp_w: dict[int, int]) -> bytes:
     w, h = decoder.width, decoder.height
     rgb = bytearray(w * h * 3)
     components = decoder.components
@@ -172,9 +170,7 @@ def compose_rgb(
             start = idx * stride
             return buf[start : start + stride]
 
-        def upsample_full(
-            comp: JpegComponent, buf: list[int], stride: int
-        ) -> list[int]:
+        def upsample_full(comp: JpegComponent, buf: list[int], stride: int) -> list[int]:
             if comp["h"] == decoder.max_h and comp["v"] == decoder.max_v:
                 return buf
             h_expand = decoder.max_h // comp["h"]
@@ -187,9 +183,7 @@ def compose_rgb(
                 for inrow in range(src_h):
                     for v in (0, 1):
                         row0 = row_slice(buf, stride, inrow)
-                        row1 = row_slice(
-                            buf, stride, inrow - 1 if v == 0 else inrow + 1
-                        )
+                        row1 = row_slice(buf, stride, inrow - 1 if v == 0 else inrow + 1)
                         dst = (inrow * 2 + v) * outw
                         thiscolsum = row0[0] * 3 + row1[0]
                         if stride > 1:
@@ -204,9 +198,7 @@ def compose_rgb(
                         for col in range(1, stride - 1):
                             nextcolsum = row0[col + 1] * 3 + row1[col + 1]
                             out[dst + out_idx] = (thiscolsum * 3 + lastcolsum + 8) >> 4
-                            out[dst + out_idx + 1] = (
-                                thiscolsum * 3 + nextcolsum + 7
-                            ) >> 4
+                            out[dst + out_idx + 1] = (thiscolsum * 3 + nextcolsum + 7) >> 4
                             lastcolsum = thiscolsum
                             thiscolsum = nextcolsum
                             out_idx += 2
@@ -244,9 +236,7 @@ def compose_rgb(
                 for inrow in range(src_h):
                     for v in (0, 1):
                         row0 = row_slice(buf, stride, inrow)
-                        row1 = row_slice(
-                            buf, stride, inrow - 1 if v == 0 else inrow + 1
-                        )
+                        row1 = row_slice(buf, stride, inrow - 1 if v == 0 else inrow + 1)
                         bias = 1 if v == 0 else 2
                         dst = (inrow * 2 + v) * outw
                         for col in range(stride):
@@ -270,15 +260,11 @@ def compose_rgb(
         y_buf = upsample_full(components[0], comp_buf[y_id], comp_w[y_id])
         second_id = components[1]["id"]
         third_id = components[2]["id"]
-        second_buf = upsample_full(
-            components[1], comp_buf[second_id], comp_w[second_id]
-        )
+        second_buf = upsample_full(components[1], comp_buf[second_id], comp_w[second_id])
         third_buf = upsample_full(components[2], comp_buf[third_id], comp_w[third_id])
         if len(components) == 4:
             fourth_id = components[3]["id"]
-            fourth_buf = upsample_full(
-                components[3], comp_buf[fourth_id], comp_w[fourth_id]
-            )
+            fourth_buf = upsample_full(components[3], comp_buf[fourth_id], comp_w[fourth_id])
             use_ycck = decoder.adobe_transform == 2
             use_inverted_cmyk = decoder.adobe_transform == 0
             for y in range(h):
@@ -362,11 +348,7 @@ def decode_progressive(decoder: Any) -> bytes:
             table_class: int,
             table_id: int,
         ) -> HuffmanTable:
-            return (
-                tbl
-                if tbl is not None
-                else decoder.huffman_tables[(table_class, table_id)]
-            )
+            return tbl if tbl is not None else decoder.huffman_tables[(table_class, table_id)]
 
         scan_meta = [
             (
@@ -393,9 +375,7 @@ def decode_progressive(decoder: Any) -> bytes:
                 )
         else:
             if len(scan_meta) != 1:
-                raise JpegUnsupportedError(
-                    "Progressive AC scan must contain one component"
-                )
+                raise JpegUnsupportedError("Progressive AC scan must contain one component")
             if se >= 64 or ss > se:
                 raise JpegUnsupportedError("Invalid progressive AC spectral selection")
             if ah == 0:

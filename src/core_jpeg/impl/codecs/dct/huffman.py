@@ -13,7 +13,7 @@ HuffmanTable: TypeAlias = tuple[list[int], list[int], HuffmanRows]
 def build_huffman_table(
     lengths: bytes, symbols: bytes
 ) -> tuple[list[int], list[int], list[dict[int, int]]]:
-    huff = [dict() for ignored in range(16)]
+    huff: HuffmanRows = [{} for ignored in range(16)]
     fast_values = [-1] * (1 << FAST_HUFFMAN_BITS)
     fast_lengths = [0] * (1 << FAST_HUFFMAN_BITS)
     code = 0

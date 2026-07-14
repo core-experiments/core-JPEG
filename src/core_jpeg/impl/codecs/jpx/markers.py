@@ -133,14 +133,8 @@ def parse_header(image: Any, br: BitStream) -> bool:
             parse_crg(image, br)
         elif marker in {0xFF50, 0xFF64}:
             skip_marker_segment(br)
-        elif marker == 0xFF90:
-            return True
-        elif marker == 0xFF93:
-            return True
-        elif marker == 0xFFD9:
-            return True
         else:
-            return False
+            return marker in {0xFF90, 0xFF93, 0xFFD9}
 
 
 def skip_marker_segment(br: BitStream) -> None:
@@ -276,9 +270,7 @@ def parse_siz(image: Any, br: BitStream) -> None:
     if (
         image.expected_width is not None
         and image.expected_height is not None
-        and (
-            image.expected_width != image.width or image.expected_height != image.height
-        )
+        and (image.expected_width != image.width or image.expected_height != image.height)
     ):
         raise JpegParseError("JP2 IHDR dimensions do not match JPX SIZ marker")
     image.components_data = []

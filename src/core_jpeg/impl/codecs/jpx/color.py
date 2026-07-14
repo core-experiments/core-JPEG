@@ -500,9 +500,7 @@ def jp2_color_specification_is_better(
         return False
     if current is None:
         return True
-    return jp2_color_specification_rank(candidate) < jp2_color_specification_rank(
-        current
-    )
+    return jp2_color_specification_rank(candidate) < jp2_color_specification_rank(current)
 
 
 def jp2_color_specification_rank(
@@ -528,6 +526,4 @@ def jp2_requires_all_components(jp2: Jp2ImageData) -> bool:
         return True
     if jp2.component_mapping:
         return True
-    if jp2.channel_definitions:
-        return True
-    return False
+    return bool(jp2.channel_definitions)

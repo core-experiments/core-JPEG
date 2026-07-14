@@ -98,9 +98,7 @@ def copy_coding_params(params: JpxCodingParams) -> JpxCodingParams:
         multiple_component_transform=params.multiple_component_transform,
         precincts=list(params.precincts),
         component_coding_params=[
-            copy_component_coding_params(component_params)
-            if component_params is not None
-            else None
+            copy_component_coding_params(component_params) if component_params is not None else None
             for component_params in params.component_coding_params
         ],
         progression_changes=list(params.progression_changes),
@@ -222,19 +220,14 @@ def coding_params_with_component_roi_shift(
 def coding_component_quant_steps(
     params: JpxCodingParams, component_index: int
 ) -> list[tuple[int, int]]:
-    if (
-        component_index < len(params.quant_steps)
-        and params.quant_steps[component_index]
-    ):
+    if component_index < len(params.quant_steps) and params.quant_steps[component_index]:
         return params.quant_steps[component_index]
     if not params.quant_steps or not params.quant_steps[0]:
         raise JpegParseError("missing JPX quantization defaults")
     return params.quant_steps[0]
 
 
-def coding_component_quant_guard_bits(
-    params: JpxCodingParams, component_index: int
-) -> int:
+def coding_component_quant_guard_bits(params: JpxCodingParams, component_index: int) -> int:
     if component_index < len(params.quant_guard_bits_by_component):
         guard_bits = params.quant_guard_bits_by_component[component_index]
         if guard_bits is not None:

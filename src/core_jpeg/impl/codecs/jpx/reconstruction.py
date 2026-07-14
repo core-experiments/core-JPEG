@@ -6,6 +6,7 @@ from core_jpeg.impl.codecs.jpx.output import (
     place_tile_bytes,
     tile_interleaved_samples,
 )
+from core_jpeg.impl.codecs.jpx.packets import JpxPacketStreamConsumed
 from core_jpeg.impl.codecs.jpx.params import (
     JpxCodingParams,
     coding_component_quant_guard_bits,
@@ -13,7 +14,6 @@ from core_jpeg.impl.codecs.jpx.params import (
     coding_component_roi_shift,
     coding_component_style_params,
 )
-from core_jpeg.impl.codecs.jpx.packets import JpxPacketStreamConsumed
 from core_jpeg.impl.codecs.jpx.progression import (
     decode_progression_packet_streams,
     decode_subband_codeblocks,
@@ -89,9 +89,7 @@ def reconstruct_component(
     quant_steps = coding_component_quant_steps(params, comp_index)
     quant_guard_bits = coding_component_quant_guard_bits(params, comp_index)
     roi_shift = coding_component_roi_shift(params, comp_index)
-    component_spec = image.components_data[
-        min(comp_index, len(image.components_data) - 1)
-    ]
+    component_spec = image.components_data[min(comp_index, len(image.components_data) - 1)]
     precision = int(component_spec.get("precision", 8))
     for res in comp.resolutions:
         for subband in res.subbands:

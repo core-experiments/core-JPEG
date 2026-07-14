@@ -79,9 +79,7 @@ def decode_tile_parts(image: Any, parts: list[JpxTilePart]) -> None:
                     raise JpegParseError("JPX tile-part consumed past payload")
         return
     config = worker_config(image)
-    jobs = [
-        (config, tile_index, tile_parts) for tile_index, tile_parts in grouped.items()
-    ]
+    jobs = [(config, tile_index, tile_parts) for tile_index, tile_parts in grouped.items()]
     with InterpreterPoolExecutor(max_workers=worker_count) as executor:
         for tile_index, channels, tile_data in executor.map(
             _decode_jpx_tile_parts_interpreter_job,
@@ -112,9 +110,7 @@ def decode_tile_parts_with_ppm(
 def parallel_tile_worker_count(grouped: dict[int, list[JpxTilePart]]) -> int:
     if len(grouped) <= 1:
         return 1
-    total_payload = sum(
-        len(part.payload) for tile_parts in grouped.values() for part in tile_parts
-    )
+    total_payload = sum(len(part.payload) for tile_parts in grouped.values() for part in tile_parts)
     if total_payload < JPX_PARALLEL_TILE_MIN_BYTES:
         return 1
     configured = os.environ.get(JPX_WORKER_ENV)
@@ -224,26 +220,16 @@ def configure_component_precincts(
     if not params.precincts:
         return
     for res_index, resolution in enumerate(component.resolutions):
-        precinct_w, precinct_h = params.precincts[
-            min(res_index, len(params.precincts) - 1)
-        ]
+        precinct_w, precinct_h = params.precincts[min(res_index, len(params.precincts) - 1)]
         grid_x0 = (resolution.x0 // precinct_w) * precinct_w
         grid_y0 = (resolution.y0 // precinct_h) * precinct_h
         grid_x1 = ceil_div(resolution.x1, precinct_w) * precinct_w
         grid_y1 = ceil_div(resolution.y1, precinct_h) * precinct_h
-        precinct_cols = (
-            0 if resolution.x0 == resolution.x1 else (grid_x1 - grid_x0) // precinct_w
-        )
-        precinct_rows = (
-            0 if resolution.y0 == resolution.y1 else (grid_y1 - grid_y0) // precinct_h
-        )
+        precinct_cols = 0 if resolution.x0 == resolution.x1 else (grid_x1 - grid_x0) // precinct_w
+        precinct_rows = 0 if resolution.y0 == resolution.y1 else (grid_y1 - grid_y0) // precinct_h
         for subband in resolution.subbands:
-            subband_precinct_w = (
-                precinct_w if subband.is_ll else max(1, precinct_w // 2)
-            )
-            subband_precinct_h = (
-                precinct_h if subband.is_ll else max(1, precinct_h // 2)
-            )
+            subband_precinct_w = precinct_w if subband.is_ll else max(1, precinct_w // 2)
+            subband_precinct_h = precinct_h if subband.is_ll else max(1, precinct_h // 2)
             configure_subband_codeblocks(
                 subband,
                 min(params.codeblock_w, subband_precinct_w),
@@ -276,14 +262,10 @@ def configure_subband_codeblocks(
     subband.block_origin_x = subband.x0 // codeblock_w
     subband.block_origin_y = subband.y0 // codeblock_h
     subband.num_blocks_h = (
-        0
-        if subband.width <= 0
-        else ceil_div(subband.x1, codeblock_w) - subband.block_origin_x
+        0 if subband.width <= 0 else ceil_div(subband.x1, codeblock_w) - subband.block_origin_x
     )
     subband.num_blocks_v = (
-        0
-        if subband.height <= 0
-        else ceil_div(subband.y1, codeblock_h) - subband.block_origin_y
+        0 if subband.height <= 0 else ceil_div(subband.y1, codeblock_h) - subband.block_origin_y
     )
     subband.blocks = [
         CodeBlock(codeblock_w * codeblock_h)
@@ -329,9 +311,7 @@ def image_x_end(image: Any) -> int:
 
 
 def image_y_end(image: Any) -> int:
-    return (
-        image.y_end if image.y_end > image.y_origin else image.y_origin + image.height
-    )
+    return image.y_end if image.y_end > image.y_origin else image.y_origin + image.height
 
 
 def tile_reference_bounds(image: Any, tx: int, ty: int) -> tuple[int, int, int, int]:

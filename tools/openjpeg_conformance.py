@@ -58,8 +58,7 @@ def resolve_data_root(data_root: str | Path | None) -> Path:
         if candidate.exists():
             return candidate
     raise FileNotFoundError(
-        "openjpeg-data root not found; expected ./openjpeg-data or "
-        "./openjpeg-reference/data"
+        "openjpeg-data root not found; expected ./openjpeg-data or ./openjpeg-reference/data"
     )
 
 

@@ -122,9 +122,7 @@ class JpxTagTree:
         self.values = [[999] * (w * h) for w, h in self.levels]
         self.lows = [[0] * (w * h) for w, h in self.levels]
 
-    def decode_less_than(
-        self, reader: PacketBitReader, x: int, y: int, threshold: int
-    ) -> bool:
+    def decode_less_than(self, reader: PacketBitReader, x: int, y: int, threshold: int) -> bool:
         if x < 0 or x >= self.width or y < 0 or y >= self.height:
             raise ValueError("JPX tag-tree coordinate out of range")
         low = 0
@@ -192,9 +190,9 @@ class JpxPrecinct:
         self.block_y0 = block_y0
         self.blocks_w = blocks_w
         self.blocks_h = blocks_h
-        self.packet_states = [
-            JpxPacketCodeBlockState() for ignored in range(blocks_w * blocks_h)
-        ]
+        self.packet_states = [JpxPacketCodeBlockState() for ignored in range(blocks_w * blocks_h)]
+        self.inclusion: JpxTagTree | None
+        self.zero_bit_planes: JpxTagTree | None
         if blocks_w > 0 and blocks_h > 0:
             self.inclusion = JpxTagTree(blocks_w, blocks_h)
             self.zero_bit_planes = JpxTagTree(blocks_w, blocks_h)
@@ -279,10 +277,7 @@ def decode_packet_codeblock_segments(
     remaining_passes = num_new_passes
     packet_segments: list[JpxPacketSegment] = []
     while remaining_passes > 0:
-        if (
-            not state.segments
-            or state.segments[-1].passes == state.segments[-1].max_passes
-        ):
+        if not state.segments or state.segments[-1].passes == state.segments[-1].max_passes:
             segment = append_packet_codeword_segment(state, codeblock_style)
             segment_index = len(state.segments) - 1
         else:

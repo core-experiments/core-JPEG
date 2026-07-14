@@ -4,12 +4,9 @@ import math
 
 IDCT_SCALE = tuple(1 / math.sqrt(2) if i == 0 else 1.0 for i in range(8))
 IDCT_COS = tuple(
-    tuple(math.cos(((2 * x + 1) * u * math.pi) / 16.0) for u in range(8))
-    for x in range(8)
+    tuple(math.cos(((2 * x + 1) * u * math.pi) / 16.0) for u in range(8)) for x in range(8)
 )
-IDCT_BASIS = tuple(
-    tuple(IDCT_SCALE[u] * IDCT_COS[x][u] for u in range(8)) for x in range(8)
-)
+IDCT_BASIS = tuple(tuple(IDCT_SCALE[u] * IDCT_COS[x][u] for u in range(8)) for x in range(8))
 
 
 def idct_2d(block: list[int], temp: list[float]) -> list[int]:

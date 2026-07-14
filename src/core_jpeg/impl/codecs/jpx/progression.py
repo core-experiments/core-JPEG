@@ -1,13 +1,5 @@
 from __future__ import annotations
 
-from core_jpeg.impl.codecs.jpx.params import (
-    CPRL,
-    LRCP,
-    PCRL,
-    RPCL,
-    RLCP,
-    JpxProgressionChange,
-)
 from core_jpeg.impl.codecs.jpx.packets import (
     JpxCodeBlockChunk,
     JpxDecodedPacket,
@@ -21,6 +13,14 @@ from core_jpeg.impl.codecs.jpx.packets import (
     decode_packet_codeblock_segments,
     skip_eph_marker,
     skip_sop_marker,
+)
+from core_jpeg.impl.codecs.jpx.params import (
+    CPRL,
+    LRCP,
+    PCRL,
+    RLCP,
+    RPCL,
+    JpxProgressionChange,
 )
 from core_jpeg.impl.codecs.jpx.structures import SubBand, TileComponent, ceil_div
 from core_jpeg.impl.codecs.jpx.tier1 import decode_tier1_codeblock_segments
@@ -181,9 +181,7 @@ def decode_packet_position_with_packed_headers(
     )
 
 
-def codeblock_dimensions(
-    subband: SubBand, block_x: int, block_y: int
-) -> tuple[int, int]:
+def codeblock_dimensions(subband: SubBand, block_x: int, block_y: int) -> tuple[int, int]:
     if block_x < 0 or block_y < 0:
         raise ValueError("invalid JPX code-block coordinate")
     if block_x >= subband.num_blocks_h or block_y >= subband.num_blocks_v:
@@ -197,9 +195,7 @@ def codeblock_dimensions(
     return max(0, x1 - x0), max(0, y1 - y0)
 
 
-def place_codeblock_samples(
-    subband: SubBand, block_index: int, samples: list[int]
-) -> None:
+def place_codeblock_samples(subband: SubBand, block_index: int, samples: list[int]) -> None:
     if subband.num_blocks_h <= 0:
         raise ValueError("JPX subband has no code-block columns")
     block_x = block_index % subband.num_blocks_h
@@ -261,13 +257,9 @@ def iter_progression_packet_positions(
             return []
         positions: list[tuple[tuple[int, int], JpxPacketPosition]] = []
         subbands = [
-            subband
-            for subband in comp.resolutions[resolution].subbands
-            if subband.precincts
+            subband for subband in comp.resolutions[resolution].subbands if subband.precincts
         ]
-        precinct_count = max(
-            (len(subband.precincts) for subband in subbands), default=0
-        )
+        precinct_count = max((len(subband.precincts) for subband in subbands), default=0)
         for precinct_index in range(precinct_count):
             bands: list[SubBand] = []
             precincts: list[JpxPrecinct] = []
@@ -297,14 +289,9 @@ def iter_progression_packet_positions(
                 )
         return positions
 
-    def positions_for(
-        layer: int, resolution: int, component: int
-    ) -> list[JpxPacketPosition]:
+    def positions_for(layer: int, resolution: int, component: int) -> list[JpxPacketPosition]:
         return [
-            packet
-            for ignored_key, packet in packet_templates_for(
-                layer, resolution, component
-            )
+            packet for ignored_key, packet in packet_templates_for(layer, resolution, component)
         ]
 
     def add_positions_for_order(
@@ -344,7 +331,7 @@ def iter_progression_packet_positions(
                             if packet is not None:
                                 positions.append(packet)
         elif order == PCRL:
-            packet_templates = packet_templates_for_component_resolution_range(
+            component_resolution_templates = packet_templates_for_component_resolution_range(
                 component_start,
                 component_end,
                 resolution_start,
@@ -352,8 +339,8 @@ def iter_progression_packet_positions(
                 layer_start,
                 layer_end,
             )
-            for key in sorted(packet_templates):
-                component_resolution_packets = packet_templates[key]
+            for key in sorted(component_resolution_templates):
+                component_resolution_packets = component_resolution_templates[key]
                 for component in range(component_start, component_end):
                     for resolution in range(resolution_start, resolution_end):
                         for layer in range(layer_start, layer_end):
@@ -403,18 +390,12 @@ def iter_progression_packet_positions(
         layer_start: int,
         layer_end: int,
     ) -> dict[tuple[int, int], dict[tuple[int, int, int], JpxPacketPosition]]:
-        grouped: dict[
-            tuple[int, int], dict[tuple[int, int, int], JpxPacketPosition]
-        ] = {}
+        grouped: dict[tuple[int, int], dict[tuple[int, int, int], JpxPacketPosition]] = {}
         for component in range(component_start, component_end):
             for resolution in range(resolution_start, resolution_end):
                 for layer in range(layer_start, layer_end):
-                    for key, packet in packet_templates_for(
-                        layer, resolution, component
-                    ):
-                        grouped.setdefault(key, {})[(component, resolution, layer)] = (
-                            packet
-                        )
+                    for key, packet in packet_templates_for(layer, resolution, component):
+                        grouped.setdefault(key, {})[(component, resolution, layer)] = packet
         return grouped
 
     def packet_templates_for_component(

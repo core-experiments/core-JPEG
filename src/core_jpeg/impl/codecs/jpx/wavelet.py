@@ -173,9 +173,7 @@ def idwt_97(
             high[i] - float32(idwt_sample(low, i) + idwt_sample(low, i + 1)) * f_gamma
         )
     for i in range(low_count):
-        low[i] = float32(
-            low[i] - float32(idwt_sample(high, i - 1) + idwt_sample(high, i)) * f_beta
-        )
+        low[i] = float32(low[i] - float32(idwt_sample(high, i - 1) + idwt_sample(high, i)) * f_beta)
     for i in range(high_count):
         high[i] = float32(
             high[i] - float32(idwt_sample(low, i) + idwt_sample(low, i + 1)) * f_alpha
