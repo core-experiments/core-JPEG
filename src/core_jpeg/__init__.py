@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from core_jpeg.impl.errors import (
-    JpegError,
-    JpegParseError,
-    JpegUnsupportedError,
-)
 from core_jpeg.api import (
     DecodedJpxComponent,
     DecodedJpxImage,
     decode_dct,
     decode_jpx,
     decode_jpx_image,
+)
+from core_jpeg.impl.errors import (
+    JpegError,
+    JpegParseError,
+    JpegUnsupportedError,
 )
 
 __all__ = (

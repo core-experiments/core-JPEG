@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from core_jpeg.impl.codecs.jpx.boxes import Jp2Parser
+from core_jpeg.impl.codecs.jpx.codestream import JpxImage
 from core_jpeg.impl.codecs.jpx.color import (
     apply_jp2_container_transforms,
     apply_jp2_embedded_color_transforms,
     jp2_color_space_kind,
 )
-from core_jpeg.impl.codecs.jpx.codestream import JpxImage
 from core_jpeg.impl.codecs.jpx.output import (
     decoded_jpx_image_from_interleaved,
     decoded_jpx_native_components,

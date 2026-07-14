@@ -86,9 +86,7 @@ class JPEGDecoder:
     def decode(self) -> bytes:
         return dct_scan.decode(self)
 
-    def compose_rgb(
-        self, comp_buf: dict[int, list[int]], comp_w: dict[int, int]
-    ) -> bytes:
+    def compose_rgb(self, comp_buf: dict[int, list[int]], comp_w: dict[int, int]) -> bytes:
         return dct_scan.compose_rgb(self, comp_buf, comp_w)
 
     def decode_progressive(self) -> bytes:

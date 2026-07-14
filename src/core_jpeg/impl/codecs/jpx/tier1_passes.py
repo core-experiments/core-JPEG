@@ -10,10 +10,10 @@ from core_jpeg.impl.codecs.jpx.params import (
 )
 from core_jpeg.impl.codecs.jpx.tier1_entropy import RawBitDecoder
 from core_jpeg.impl.codecs.jpx.tier1_state import (
-    JpxTier1State,
     T1_CTXNO_AGG,
     T1_CTXNO_MAG,
     T1_CTXNO_UNI,
+    JpxTier1State,
     t1_zero_coding_context,
     t1_zero_coding_context_from_counts,
 )
@@ -184,9 +184,7 @@ def t1_decode_cleanup_pass(
                             run_length_ok = False
                             break
                 if run_length_ok and decoder.decode(T1_CTXNO_AGG):
-                    offset = decoder.decode(T1_CTXNO_UNI) * 2 + decoder.decode(
-                        T1_CTXNO_UNI
-                    )
+                    offset = decoder.decode(T1_CTXNO_UNI) * 2 + decoder.decode(T1_CTXNO_UNI)
                     y += offset
                     t1_decode_sign(
                         decoder,

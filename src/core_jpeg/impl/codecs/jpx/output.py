@@ -73,10 +73,7 @@ def tile_interleaved_samples(
     component_planes = [component_samples(component) for component in components]
     if component_mode == "all":
         if multiple_component_transform and len(components) >= 3:
-            planes = (
-                list(inverse_mct(component_planes[:3], reversible))
-                + component_planes[3:]
-            )
+            planes = list(inverse_mct(component_planes[:3], reversible)) + component_planes[3:]
             plane_components = [
                 components[0],
                 components[0],
@@ -231,11 +228,7 @@ def jp2_preserves_native_component_output(
     *,
     apply_embedded_color: bool,
 ) -> bool:
-    return (
-        not apply_embedded_color
-        and not jp2.component_mapping
-        and not jp2.channel_definitions
-    )
+    return not apply_embedded_color and not jp2.component_mapping and not jp2.channel_definitions
 
 
 def decoded_jpx_image_from_interleaved(

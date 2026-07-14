@@ -6,6 +6,7 @@ from core_jpeg.impl.codecs.jpx import markers as jpx_markers
 from core_jpeg.impl.codecs.jpx import reconstruction as jpx_reconstruction
 from core_jpeg.impl.codecs.jpx import tiles as jpx_tiles
 from core_jpeg.impl.codecs.jpx.boxes import Jp2Parser
+from core_jpeg.impl.codecs.jpx.packets import JpxPacketStreamConsumed
 from core_jpeg.impl.codecs.jpx.params import (
     JPX_SUPPORTED_CODEBLOCK_STYLE,
     JpxCodingParams,
@@ -16,7 +17,6 @@ from core_jpeg.impl.codecs.jpx.params import (
     copy_component_coding_params,
     validate_jpx_coding_params,
 )
-from core_jpeg.impl.codecs.jpx.packets import JpxPacketStreamConsumed
 from core_jpeg.impl.codecs.jpx.structures import (
     BitStream,
     JpxTilePart,
@@ -325,9 +325,7 @@ class JpxImage:
         self.multiple_component_transform = params.multiple_component_transform
         self.precincts = list(params.precincts)
         self.component_coding_params = [
-            copy_component_coding_params(component_params)
-            if component_params is not None
-            else None
+            copy_component_coding_params(component_params) if component_params is not None else None
             for component_params in params.component_coding_params
         ]
         self.progression_changes = list(params.progression_changes)
@@ -345,9 +343,7 @@ class JpxImage:
 
     def parse_tile_parts(self, br: BitStream, data_len: int) -> bool:
         if self.codeblock_style & ~JPX_SUPPORTED_CODEBLOCK_STYLE:
-            raise JpegUnsupportedError(
-                "JPX code-block style includes unsupported HT modes"
-            )
+            raise JpegUnsupportedError("JPX code-block style includes unsupported HT modes")
         parts: list[JpxTilePart] = []
         global_params = self.coding_params()
         tile_params: dict[int, JpxCodingParams] = {}

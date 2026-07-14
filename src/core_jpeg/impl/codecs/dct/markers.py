@@ -141,9 +141,7 @@ def parse_sof0(decoder: Any) -> None:
             raise JpegUnsupportedError("invalid JPEG sampling factors")
         if qt_id > 3:
             raise JpegUnsupportedError("invalid JPEG quantization table id")
-        decoder.components.append(
-            {"id": comp_id, "h": h, "v": v, "qt": qt_id, "prev_dc": 0}
-        )
+        decoder.components.append({"id": comp_id, "h": h, "v": v, "qt": qt_id, "prev_dc": 0})
         decoder.max_h = max(decoder.max_h, h)
         decoder.max_v = max(decoder.max_v, v)
     decoder.mcu_width = decoder.max_h * 8

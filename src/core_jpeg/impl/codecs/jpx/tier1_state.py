@@ -29,11 +29,7 @@ class JpxTier1State:
         return y * self.width + x
 
     def is_significant(self, x: int, y: int) -> bool:
-        return (
-            0 <= x < self.width
-            and 0 <= y < self.height
-            and self.significant[self.index(x, y)]
-        )
+        return 0 <= x < self.width and 0 <= y < self.height and self.significant[self.index(x, y)]
 
     def ignore_north_neighbors(
         self,
@@ -165,9 +161,7 @@ class JpxTier1State:
             context_offset = 4
         predicted_sign = 0
         if horizontal != 0 or vertical != 0:
-            predicted_sign = int(
-                not (horizontal > 0 or (horizontal == 0 and vertical > 0))
-            )
+            predicted_sign = int(not (horizontal > 0 or (horizontal == 0 and vertical > 0)))
         return T1_CTXNO_SC + context_offset, predicted_sign
 
     def update_significance(self, x: int, y: int, value: int) -> None:
@@ -191,9 +185,7 @@ def t1_zero_coding_context(
         y,
         vertical_stripe_causal,
     )
-    return t1_zero_coding_context_from_counts(
-        horizontal, vertical, diagonal, orientation
-    )
+    return t1_zero_coding_context_from_counts(horizontal, vertical, diagonal, orientation)
 
 
 def t1_zero_coding_context_from_counts(
