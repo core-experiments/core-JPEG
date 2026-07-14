@@ -17,6 +17,7 @@ build-backend = "uv_build"
 [dependency-groups]
 dev = [
     "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
     "ty>=0.0.57",
 ]
 lint = [
@@ -58,3 +59,10 @@ python_version = "3.14"
 files = ["src/core_jpeg"]
 mypy_path = "src"
 show_error_codes = true
+
+[tool.pytest.ini_options]
+addopts = [
+    "--cov=core_jpeg",
+    "--cov-report=term-missing",
+]
+testpaths = ["tests"]
