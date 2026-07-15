@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 import os
-from concurrent.futures import InterpreterPoolExecutor
+import sys
+from concurrent.futures import ProcessPoolExecutor
 from typing import Any
 
 from core_jpeg.impl.codecs.jpx.output import (
@@ -30,6 +31,17 @@ from core_jpeg.impl.errors import JpegParseError
 JPX_PARALLEL_TILE_MIN_BYTES = 256_000
 JPX_PARALLEL_TILE_MAX_WORKERS = 8
 JPX_WORKER_ENV = "CORE_JPEG_JPX_WORKERS"
+
+
+def _jpx_tile_executor_class() -> Any:
+    if sys.version_info < (3, 14):
+        return ProcessPoolExecutor
+    from concurrent.futures import InterpreterPoolExecutor
+
+    return InterpreterPoolExecutor
+
+
+InterpreterPoolExecutor = _jpx_tile_executor_class()
 
 
 def validate_tile_part_header(
