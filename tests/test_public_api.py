@@ -1,3 +1,5 @@
+import concurrent.futures
+import sys
 from dataclasses import FrozenInstanceError
 
 import pytest
@@ -28,6 +30,14 @@ def test_decode_dct_rejects_empty_input() -> None:
 def test_jpx_decoders_reject_empty_input(decoder: object) -> None:
     with pytest.raises(JpegParseError, match="unexpected end"):
         decoder(b"")  # type: ignore[operator]
+
+
+def test_jpx_tile_executor_falls_back_on_python_313(monkeypatch: pytest.MonkeyPatch) -> None:
+    from core_jpeg.impl.codecs.jpx import tiles
+
+    monkeypatch.setattr(sys, "version_info", (3, 13, 0))
+
+    assert tiles._jpx_tile_executor_class() is concurrent.futures.ProcessPoolExecutor
 
 
 def test_decoded_image_models_are_immutable() -> None:
