@@ -6,9 +6,19 @@ readme = "README.md"
 authors = [
     { name = "Kevin Turcios", email = "turcioskevinr@gmail.com" }
 ]
+license = "AGPL-3.0-only"
+license-files = ["LICENSE.txt"]
 requires-python = ">=3.11"
 dependencies = []
-classifiers = ["Private :: Do Not Upload", "Development Status :: 3 - Alpha"]
+classifiers = ["Development Status :: 3 - Alpha"]
+
+[project.urls]
+Repository = "https://github.com/core-experiments/core-jpeg"
+License = "https://github.com/core-experiments/core-jpeg/blob/main/LICENSE.txt"
+"License documentation" = "https://github.com/core-experiments/core-jpeg/blob/main/docs/license/README.md"
+"Commercial license terms" = "https://github.com/core-experiments/core-jpeg/blob/main/docs/license/LICENSE-COMMERCIAL.txt"
+"Evaluation license terms" = "https://github.com/core-experiments/core-jpeg/blob/main/docs/license/LICENSE-EVALUATION.txt"
+"Philanthropy waiver terms" = "https://github.com/core-experiments/core-jpeg/blob/main/docs/license/LICENSE-PHILANTHROPY-WAIVER.txt"
 
 [build-system]
 requires = ["uv_build>=0.11.17,<0.12.0"]
