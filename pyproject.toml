@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Kevin Turcios", email = "turcioskevinr@gmail.com" }
 ]
-requires-python = ">=3.14"
+requires-python = ">=3.11"
 dependencies = []
 classifiers = ["Private :: Do Not Upload", "Development Status :: 3 - Alpha"]
 
