@@ -319,3 +319,53 @@ def test_iso_run_aggregates_exact_statuses_without_openjpeg(
     assert report["attachment"]["edition"] == "ISO/IEC 15444-4:2024"
     assert report["counts"]["pass"] == 1
     assert report["counts"]["bug"] == 1
+
+
+def test_compare_iso_baseline_accepts_known_failure_set() -> None:
+    report = {
+        "attachment": harness.ISO_ATTACHMENT,
+        "fixture_inventory_sha256": "abc",
+        "cases": [
+            {"id": "p0_01", "status": "pass"},
+            {"id": "p0_02", "status": "bug"},
+        ],
+    }
+    baseline = {
+        "attachment": harness.ISO_ATTACHMENT,
+        "fixture_inventory_sha256": "abc",
+        "cases": {
+            "pass": ["p0_01"],
+            "bug": ["p0_02"],
+            "known_unsupported": [],
+            "oracle_failure": [],
+            "invalid_fixture": [],
+            "out_of_scope": [],
+        },
+    }
+
+    assert harness.compare_iso_baseline(report, baseline) == []
+
+
+def test_compare_iso_baseline_reports_status_and_inventory_regressions() -> None:
+    report = {
+        "attachment": harness.ISO_ATTACHMENT,
+        "fixture_inventory_sha256": "changed",
+        "cases": [
+            {"id": "p0_01", "status": "bug"},
+            {"id": "p0_02", "status": "pass"},
+        ],
+    }
+    baseline = {
+        "attachment": harness.ISO_ATTACHMENT,
+        "fixture_inventory_sha256": "abc",
+        "cases": {
+            "pass": ["p0_01"],
+            "bug": ["p0_02"],
+        },
+    }
+
+    mismatches = harness.compare_iso_baseline(report, baseline)
+
+    assert any("fixture inventory sha256 mismatch" in item for item in mismatches)
+    assert any("pass cases differ" in item for item in mismatches)
+    assert any("bug cases differ" in item for item in mismatches)

@@ -613,6 +613,54 @@ def run_iso_conformance(
     return (1 if counts["bug"] or counts["invalid_fixture"] else 0), report
 
 
+def iso_case_status_groups(report: dict[str, Any]) -> dict[str, list[str]]:
+    groups = {status: [] for status in CASE_STATUSES}
+    cases = report["cases"]
+    if isinstance(cases, dict):
+        for status, case_ids in cases.items():
+            groups[status] = sorted(case_ids)
+        return groups
+    for case in cases:
+        groups[case["status"]].append(case["id"])
+    return {status: sorted(case_ids) for status, case_ids in groups.items()}
+
+
+def compare_iso_baseline(report: dict[str, Any], baseline: dict[str, Any]) -> list[str]:
+    """Return human-readable regressions; empty means the run matches the baseline."""
+    mismatches: list[str] = []
+    report_attachment = report.get("attachment") or {}
+    baseline_attachment = baseline.get("attachment") or {}
+    report_sha = report_attachment.get("archive_sha256")
+    baseline_sha = baseline_attachment.get("archive_sha256")
+    if report_sha != baseline_sha:
+        mismatches.append(
+            f"attachment archive sha256 mismatch: got {report_sha}, baseline {baseline_sha}",
+        )
+    report_inventory = report.get("fixture_inventory_sha256")
+    baseline_inventory = baseline.get("fixture_inventory_sha256")
+    if report_inventory != baseline_inventory:
+        mismatches.append(
+            "fixture inventory sha256 mismatch: "
+            f"got {report_inventory}, baseline {baseline_inventory}",
+        )
+    report_groups = iso_case_status_groups(report)
+    baseline_groups = iso_case_status_groups(baseline)
+    for status in CASE_STATUSES:
+        got = report_groups[status]
+        expected = baseline_groups[status]
+        if got == expected:
+            continue
+        missing = sorted(set(expected) - set(got))
+        unexpected = sorted(set(got) - set(expected))
+        details: list[str] = []
+        if missing:
+            details.append(f"missing={missing}")
+        if unexpected:
+            details.append(f"unexpected={unexpected}")
+        mismatches.append(f"{status} cases differ ({', '.join(details)})")
+    return mismatches
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(prog="openjpeg-conformance")
     parser.add_argument("--corpus", required=True, choices=sorted(CORPUS_ROOTS))
@@ -629,6 +677,13 @@ def main() -> int:
     parser.add_argument("--limit", type=int)
     parser.add_argument("--fail-fast", action="store_true")
     parser.add_argument(
+        "--baseline",
+        type=Path,
+        help=(
+            "For iso15444-4, compare results to this baseline and exit non-zero only on regressions"
+        ),
+    )
+    parser.add_argument(
         "--json-output",
         type=Path,
         help="Write the JSON report to this path as well as stdout",
@@ -643,7 +698,19 @@ def main() -> int:
             limit=args.limit,
             fail_fast=args.fail_fast,
         )
+        if args.baseline is not None:
+            baseline = json.loads(args.baseline.read_text(encoding="utf-8"))
+            mismatches = compare_iso_baseline(report, baseline)
+            if mismatches:
+                print("ISO baseline regressions:", flush=True)
+                for mismatch in mismatches:
+                    print(f"  - {mismatch}", flush=True)
+                exit_code = 1
+            else:
+                exit_code = 0
     else:
+        if args.baseline is not None:
+            parser.error("--baseline is only supported with --corpus iso15444-4")
         opj_decompress = resolve_opj_decompress(args.openjpeg_bin)
         exit_code, report = run_conformance(
             args.corpus,
