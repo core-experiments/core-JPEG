@@ -1,0 +1,59 @@
+{
+  "schema_version": 2,
+  "status": "completed_with_failures",
+  "normative_vectors_verified": true,
+  "standard_contract": "ISO/IEC 15444-1:2024",
+  "conformance_procedures": "ISO/IEC 15444-4:2024 Class 1 Profile 1",
+  "attachment": {
+    "edition": "ISO/IEC 15444-4:2024",
+    "source": "https://standards.iso.org/iso-iec/15444/-4/ed-4/en/electronic_insert.zip",
+    "acquired_at": "2026-07-19",
+    "archive_sha256": "ac04b52e1fe38404912036c14f215099ea9a785f38644fbe76ae8f3d1523c86d",
+    "redistributed": false
+  },
+  "oracle": null,
+  "fixture_inventory_sha256": "45bc482c18916620f2261e755873183759bbf98f91d3228eb70d788af282fd56",
+  "report_sha256": "05f44db2940eeffab57c4ee342056ae07bd2476e1fdc136ae2a7a1e627f85834",
+  "counts": {
+    "pass": 10,
+    "bug": 13,
+    "known_unsupported": 0,
+    "oracle_failure": 0,
+    "invalid_fixture": 0,
+    "out_of_scope": 0
+  },
+  "cases": {
+    "pass": [
+      "p0_01",
+      "p0_04",
+      "p0_06",
+      "p0_09",
+      "p0_10",
+      "p0_11",
+      "p0_12",
+      "p0_14",
+      "p0_16",
+      "p1_04"
+    ],
+    "bug": [
+      "p0_02",
+      "p0_03",
+      "p0_05",
+      "p0_07",
+      "p0_08",
+      "p0_13",
+      "p0_15",
+      "p1_01",
+      "p1_02",
+      "p1_03",
+      "p1_05",
+      "p1_06",
+      "p1_07"
+    ]
+  },
+  "notes": [
+    "This baseline records an actual formal Profile 1 run, including all Profile 0 cases.",
+    "The official attachment was acquired and its archive checksum verified locally; it is not redistributed.",
+    "The complete generated report includes per-component metrics, thresholds, metadata, and failure reasons."
+  ]
+}

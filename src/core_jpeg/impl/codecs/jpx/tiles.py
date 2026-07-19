@@ -54,6 +54,14 @@ def validate_tile_part_header(
     tile_count = image.tiles_cols * image.tiles_rows
     if tile_count and header.tile_index >= tile_count:
         raise JpegParseError("JPX tile index out of range")
+    seen_parts = sum(index + 1 for index in tile_part_indices.values())
+    if seen_parts < len(image.tile_part_lengths):
+        expected_tile, expected_length = image.tile_part_lengths[seen_parts]
+        if (header.tile_index, header.tile_part_length) != (
+            expected_tile,
+            expected_length,
+        ):
+            raise JpegParseError("JPX SOT does not match TLM entry")
     expected_part = tile_part_indices.get(header.tile_index, -1) + 1
     if header.tile_part_index != expected_part:
         raise JpegParseError("JPX tile-part index out of order")
@@ -61,10 +69,26 @@ def validate_tile_part_header(
     if known_count and header.tile_part_index >= known_count:
         raise JpegParseError("JPX tile-part index exceeds tile-part count")
     if header.tile_part_count:
+        if known_count and header.tile_part_count != known_count:
+            raise JpegParseError("JPX tile-part count changed")
         if header.tile_part_index >= header.tile_part_count:
             raise JpegParseError("JPX tile-part index exceeds tile-part count")
         tile_part_counts[header.tile_index] = header.tile_part_count
     tile_part_indices[header.tile_index] = header.tile_part_index
+
+
+def validate_tile_part_completion(
+    image: Any,
+    *,
+    tile_part_indices: dict[int, int],
+    tile_part_counts: dict[int, int],
+) -> None:
+    for tile_index, count in tile_part_counts.items():
+        if tile_part_indices.get(tile_index, -1) + 1 != count:
+            raise JpegParseError("JPX codestream ended before all tile-parts")
+    seen_parts = sum(index + 1 for index in tile_part_indices.values())
+    if image.tile_part_lengths and seen_parts != len(image.tile_part_lengths):
+        raise JpegParseError("JPX codestream tile-parts do not match TLM")
 
 
 def decode_tile_parts(image: Any, parts: list[JpxTilePart]) -> None:
@@ -88,8 +112,8 @@ def decode_tile_parts(image: Any, parts: list[JpxTilePart]) -> None:
                     part.coding_params,
                     packet_headers=part.packet_headers,
                 )
-                if consumed.body > len(part.payload):
-                    raise JpegParseError("JPX tile-part consumed past payload")
+                if consumed.body != len(part.payload):
+                    raise JpegParseError("JPX tile-part payload was not consumed exactly")
         return
     config = worker_config(image)
     jobs = [(config, tile_index, tile_parts) for tile_index, tile_parts in grouped.items()]
@@ -116,8 +140,8 @@ def decode_tile_parts_with_ppm(
             packet_header_offset=header_offset,
         )
         header_offset += consumed.header
-        if consumed.body > len(part.payload):
-            raise JpegParseError("JPX tile-part consumed past payload")
+        if consumed.body != len(part.payload):
+            raise JpegParseError("JPX tile-part payload was not consumed exactly")
 
 
 def parallel_tile_worker_count(grouped: dict[int, list[JpxTilePart]]) -> int:
@@ -166,12 +190,12 @@ def worker_config(image: Any) -> dict[str, Any]:
         "roi_shift_by_component": image.roi_shift_by_component,
         "quant_guard_bits": image.quant_guard_bits,
         "quant_guard_bits_by_component": image.quant_guard_bits_by_component,
+        "quant_style": image.quant_style,
+        "quant_style_by_component": image.quant_style_by_component,
         "quant_steps": image.quant_steps,
         "packed_packet_headers": image.packed_packet_headers,
         "components_data": image.components_data,
-        "negate": image.negate,
         "reversible": image.reversible,
-        "swap_bytes": image.swap_bytes,
     }
 
 
@@ -376,8 +400,8 @@ def _decode_jpx_tile_parts_interpreter_job(
             part.coding_params,
             packet_headers=part.packet_headers,
         )
-        if consumed.body > len(part.payload):
-            raise JpegParseError("JPX tile-part consumed past payload")
+        if consumed.body != len(part.payload):
+            raise JpegParseError("JPX tile-part payload was not consumed exactly")
     tile = ensure_tile(image, tile_index, tile_parts[0].coding_params)
     params = tile.get("coding_params", tile_parts[0].coding_params)
     channels, tile_data = tile_rgb_samples(

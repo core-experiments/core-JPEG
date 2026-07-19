@@ -1,0 +1,3 @@
+[submodule "openjpeg-data"]
+	path = openjpeg-data
+	url = https://github.com/uclouvain/openjpeg-data.git

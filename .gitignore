@@ -3,6 +3,8 @@ __pycache__/
 *.py[oc]
 .coverage
 build/
+.build/
+.cache/
 dist/
 wheels/
 *.egg-info
@@ -12,3 +14,6 @@ wheels/
 
 # Local reference checkouts
 openjpeg-reference/
+
+# Separately obtained normative conformance attachments
+external/iso15444-4/

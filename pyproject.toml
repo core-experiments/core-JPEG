@@ -76,3 +76,6 @@ addopts = [
     "--cov-report=term-missing",
 ]
 testpaths = ["tests"]
+markers = [
+    "smoke: committed-fixture end-to-end decode checks",
+]

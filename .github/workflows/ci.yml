@@ -7,8 +7,28 @@ permissions:
   contents: read
 
 jobs:
-  ci:
-    name: Python ${{ matrix.python-version }}
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: "0.11.28"
+          python-version: "3.14"
+          enable-cache: true
+
+      - name: Run lint checks
+        run: |
+          uv run --locked --group lint ruff check .
+          uv run --locked --group lint mypy
+
+  unit-tests:
+    name: unit tests (${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -28,10 +48,94 @@ jobs:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
 
-      - name: Run lint checks
-        run: |
-          uv run --locked --group lint ruff check .
-          uv run --locked --group lint mypy
+      - name: Run unit tests
+        run: uv run --locked --group dev pytest -m "not smoke"
 
-      - name: Run tests
-        run: uv run --locked --group dev pytest tests/
+  smoke-tests:
+    name: smoke tests (${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: "0.11.28"
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+
+      - name: Run smoke tests
+        run: uv run --locked --group dev pytest -m smoke --no-cov
+
+  jpeg2000-conformance:
+    name: ISO/IEC 15444-4:2024
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository and pinned corpus
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: "0.11.28"
+          python-version: "3.14"
+          enable-cache: true
+
+      - name: Cache normative attachment and OpenJPEG
+        uses: actions/cache@v5
+        with:
+          path: |
+            .cache/iso15444-4-2024
+            .build/openjpeg-2.5.4
+          key: jpeg2000-conformance-ac04b52-openjpeg-2.5.4
+
+      - name: Acquire verified ISO/IEC 15444-4:2024 attachment
+        run: |
+          mkdir -p .cache/iso15444-4-2024
+          if [ ! -f .cache/iso15444-4-2024/electronic_insert.zip ]; then
+            curl --fail --location --retry 3 \
+              --output .cache/iso15444-4-2024/electronic_insert.zip \
+              https://standards.iso.org/iso-iec/15444/-4/ed-4/en/electronic_insert.zip
+          fi
+          echo "ac04b52e1fe38404912036c14f215099ea9a785f38644fbe76ae8f3d1523c86d  .cache/iso15444-4-2024/electronic_insert.zip" \
+            | sha256sum --check
+          if [ ! -d .cache/iso15444-4-2024/files ]; then
+            unzip -q .cache/iso15444-4-2024/electronic_insert.zip \
+              -d .cache/iso15444-4-2024
+          fi
+
+      - name: Build pinned OpenJPEG differential oracle
+        run: tools/build_openjpeg.sh
+
+      - name: Run normative Class 1 Profile 1 suite
+        run: |
+          uv run python tools/openjpeg_conformance.py \
+            --corpus iso15444-4 \
+            --profile 1 \
+            --data-root .cache/iso15444-4-2024/files \
+            --json-output .build/iso15444-4-report.json
+
+      - name: Run differential corpus smoke test
+        run: |
+          uv run python tools/openjpeg_conformance.py \
+            --corpus openjpeg-input \
+            --limit 10 \
+            --json-output .build/openjpeg-smoke.json
+
+      - name: Upload conformance reports
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: jpeg2000-conformance-reports
+          path: |
+            .build/iso15444-4-report.json
+            .build/openjpeg-smoke.json

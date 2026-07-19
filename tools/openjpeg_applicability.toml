@@ -1,0 +1,30 @@
+schema_version = 1
+
+[corpora.openjpeg-input]
+source_root = "input"
+include = ["**/*"]
+
+# HTJ2K (ISO/IEC 15444-15) is outside the Part 1 decoder contract.
+[[corpora.openjpeg-input.rules]]
+pattern = "input/nonregression/htj2k/*"
+status = "out_of_scope"
+reason = "HTJ2K is specified by ISO/IEC 15444-15, not the Part 1 contract"
+
+# These extensions identify HTJ2K codestreams even when stored elsewhere.
+[[corpora.openjpeg-input.rules]]
+pattern = "**/*.jph"
+status = "out_of_scope"
+reason = "HTJ2K is specified by ISO/IEC 15444-15, not the Part 1 contract"
+
+[[corpora.openjpeg-input.rules]]
+pattern = "**/*.jhc"
+status = "out_of_scope"
+reason = "HTJ2K is specified by ISO/IEC 15444-15, not the Part 1 contract"
+
+[corpora.iso15444-4]
+source_root = "."
+include = ["**/*"]
+
+# Add fixture-specific known_unsupported or out_of_scope rules only with a
+# documented standard clause and provenance. An empty rule set is deliberate:
+# absence of the separately licensed/normative attachment is not a test result.

@@ -60,16 +60,19 @@ class JpxImage:
         "roi_shift_by_component",
         "quant_guard_bits",
         "quant_guard_bits_by_component",
+        "quant_style",
+        "quant_style_by_component",
         "quant_steps",
         "tile_part_lengths",
+        "tlm_next_index",
+        "plm_next_index",
+        "plm_packet_lengths",
         "ppm_markers",
         "packed_packet_headers",
         "components_data",
         "tiles",
         "decoded_tile_data",
-        "negate",
         "reversible",
-        "swap_bytes",
     )
 
     def __init__(self) -> None:
@@ -104,16 +107,19 @@ class JpxImage:
         self.roi_shift_by_component: list[int | None] = []
         self.quant_guard_bits = 0
         self.quant_guard_bits_by_component: list[int | None] = []
+        self.quant_style = 0
+        self.quant_style_by_component: list[int | None] = []
         self.quant_steps: list[list[tuple[int, int]]] = []
         self.tile_part_lengths: list[tuple[int, int]] = []
+        self.tlm_next_index = 0
+        self.plm_next_index = 0
+        self.plm_packet_lengths: list[int] = []
         self.ppm_markers: dict[int, bytes] = {}
         self.packed_packet_headers: bytes | None = None
         self.components_data: list[dict[Any, Any]] = []
         self.tiles: list[dict[Any, Any]] = []
         self.decoded_tile_data: list[tuple[int, bytes] | None] = []
-        self.negate = False
         self.reversible = False
-        self.swap_bytes = False
 
     def parse(self, data: bytes) -> bool:
         jp2 = Jp2Parser(data).parse()
@@ -148,6 +154,11 @@ class JpxImage:
         while True:
             marker = br.read_u16()
             if marker == 0xFFD9:
+                jpx_tiles.validate_tile_part_completion(
+                    self,
+                    tile_part_indices=tile_part_indices,
+                    tile_part_counts=tile_part_counts,
+                )
                 return parts
             if marker != 0xFF90:
                 raise JpegParseError("expected JPX SOT marker")
@@ -171,6 +182,7 @@ class JpxImage:
                     coding_params=header.coding_params,
                     payload=data[header.payload_start : header.payload_end],
                     packet_headers=header.packet_headers,
+                    packet_lengths=header.packet_lengths,
                 )
             )
             br.byte = header.payload_end
@@ -200,7 +212,7 @@ class JpxImage:
         jpx_markers.parse_tlm(self, br)
 
     def parse_plm(self, br: BitStream) -> None:
-        jpx_markers.parse_plm(br)
+        jpx_markers.parse_plm(self, br)
 
     def parse_ppm(self, br: BitStream) -> None:
         jpx_markers.parse_ppm(self, br)
@@ -208,8 +220,8 @@ class JpxImage:
     def parse_ppt_marker(self, br: BitStream, markers: dict[int, bytes]) -> None:
         jpx_markers.parse_ppt_marker(br, markers)
 
-    def parse_plt_marker(self, br: BitStream) -> None:
-        jpx_markers.parse_plt_marker(br)
+    def parse_plt_marker(self, br: BitStream) -> list[int]:
+        return jpx_markers.parse_plt_marker(br)
 
     def parse_crg(self, br: BitStream) -> None:
         jpx_markers.parse_crg(self, br)
@@ -284,7 +296,7 @@ class JpxImage:
         self,
         br: BitStream,
         length: int,
-    ) -> tuple[int, list[tuple[int, int]]]:
+    ) -> tuple[int, int, list[tuple[int, int]]]:
         return jpx_markers.parse_quantization(br, length)
 
     def coding_params(self) -> JpxCodingParams:
@@ -309,6 +321,8 @@ class JpxImage:
             roi_shift_by_component=list(self.roi_shift_by_component),
             quant_guard_bits=self.quant_guard_bits,
             quant_guard_bits_by_component=list(self.quant_guard_bits_by_component),
+            quant_style=self.quant_style,
+            quant_style_by_component=list(self.quant_style_by_component),
             quant_steps=[list(steps) for steps in self.quant_steps],
             reversible=self.reversible,
         )
@@ -333,6 +347,8 @@ class JpxImage:
         self.roi_shift_by_component = list(params.roi_shift_by_component)
         self.quant_guard_bits = params.quant_guard_bits
         self.quant_guard_bits_by_component = list(params.quant_guard_bits_by_component)
+        self.quant_style = params.quant_style
+        self.quant_style_by_component = list(params.quant_style_by_component)
         self.quant_steps = [list(steps) for steps in params.quant_steps]
         self.reversible = params.reversible
 
@@ -353,6 +369,11 @@ class JpxImage:
         while True:
             marker = br.read_u16()
             if marker == 0xFFD9:
+                jpx_tiles.validate_tile_part_completion(
+                    self,
+                    tile_part_indices=tile_part_indices,
+                    tile_part_counts=tile_part_counts,
+                )
                 self.decode_tile_parts(parts)
                 return True
             if marker != 0xFF90:
@@ -379,6 +400,7 @@ class JpxImage:
                     coding_params=header.coding_params,
                     payload=payload,
                     packet_headers=header.packet_headers,
+                    packet_lengths=header.packet_lengths,
                 )
             )
             br.byte = header.payload_end
