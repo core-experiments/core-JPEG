@@ -346,26 +346,38 @@ def test_compare_iso_baseline_accepts_known_failure_set() -> None:
     assert harness.compare_iso_baseline(report, baseline) == []
 
 
-def test_compare_iso_baseline_reports_status_and_inventory_regressions() -> None:
-    report = {
-        "attachment": harness.ISO_ATTACHMENT,
-        "fixture_inventory_sha256": "changed",
-        "cases": [
-            {"id": "p0_01", "status": "bug"},
-            {"id": "p0_02", "status": "pass"},
-        ],
-    }
+def test_compare_iso_baseline_allows_improvements_but_flags_regressions() -> None:
     baseline = {
         "attachment": harness.ISO_ATTACHMENT,
         "fixture_inventory_sha256": "abc",
         "cases": {
             "pass": ["p0_01"],
-            "bug": ["p0_02"],
+            "bug": ["p0_02", "p1_01"],
         },
     }
+    improved = {
+        "attachment": harness.ISO_ATTACHMENT,
+        "fixture_inventory_sha256": "abc",
+        "cases": [
+            {"id": "p0_01", "status": "pass"},
+            {"id": "p0_02", "status": "bug"},
+            {"id": "p1_01", "status": "pass"},
+        ],
+    }
+    regressed = {
+        "attachment": harness.ISO_ATTACHMENT,
+        "fixture_inventory_sha256": "changed",
+        "cases": [
+            {"id": "p0_01", "status": "bug"},
+            {"id": "p0_02", "status": "pass"},
+            {"id": "p1_01", "status": "bug"},
+            {"id": "p1_99", "status": "bug"},
+        ],
+    }
 
-    mismatches = harness.compare_iso_baseline(report, baseline)
+    assert harness.compare_iso_baseline(improved, baseline) == []
 
+    mismatches = harness.compare_iso_baseline(regressed, baseline)
     assert any("fixture inventory sha256 mismatch" in item for item in mismatches)
-    assert any("pass cases differ" in item for item in mismatches)
-    assert any("bug cases differ" in item for item in mismatches)
+    assert any("lost baseline passes" in item for item in mismatches)
+    assert any("new bug cases" in item for item in mismatches)

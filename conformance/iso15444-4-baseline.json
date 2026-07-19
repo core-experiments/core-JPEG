@@ -13,10 +13,10 @@
   },
   "oracle": null,
   "fixture_inventory_sha256": "45bc482c18916620f2261e755873183759bbf98f91d3228eb70d788af282fd56",
-  "report_sha256": "05f44db2940eeffab57c4ee342056ae07bd2476e1fdc136ae2a7a1e627f85834",
+  "report_sha256": "714a000ba2395cf804a9fd2dc42f22081b3db11748adfa92f555c29598bb1963",
   "counts": {
-    "pass": 10,
-    "bug": 13,
+    "pass": 11,
+    "bug": 12,
     "known_unsupported": 0,
     "oracle_failure": 0,
     "invalid_fixture": 0,
@@ -33,6 +33,7 @@
       "p0_12",
       "p0_14",
       "p0_16",
+      "p1_01",
       "p1_04"
     ],
     "bug": [
@@ -43,7 +44,6 @@
       "p0_08",
       "p0_13",
       "p0_15",
-      "p1_01",
       "p1_02",
       "p1_03",
       "p1_05",

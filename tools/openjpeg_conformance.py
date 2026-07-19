@@ -626,7 +626,11 @@ def iso_case_status_groups(report: dict[str, Any]) -> dict[str, list[str]]:
 
 
 def compare_iso_baseline(report: dict[str, Any], baseline: dict[str, Any]) -> list[str]:
-    """Return human-readable regressions; empty means the run matches the baseline."""
+    """Return true regressions versus baseline.
+
+    Improvements such as bug -> pass are allowed. Failures are attachment or
+    inventory drift, lost baseline passes, and new bug/invalid_fixture cases.
+    """
     mismatches: list[str] = []
     report_attachment = report.get("attachment") or {}
     baseline_attachment = baseline.get("attachment") or {}
@@ -643,21 +647,24 @@ def compare_iso_baseline(report: dict[str, Any], baseline: dict[str, Any]) -> li
             "fixture inventory sha256 mismatch: "
             f"got {report_inventory}, baseline {baseline_inventory}",
         )
+
     report_groups = iso_case_status_groups(report)
     baseline_groups = iso_case_status_groups(baseline)
-    for status in CASE_STATUSES:
-        got = report_groups[status]
-        expected = baseline_groups[status]
-        if got == expected:
-            continue
-        missing = sorted(set(expected) - set(got))
-        unexpected = sorted(set(got) - set(expected))
-        details: list[str] = []
-        if missing:
-            details.append(f"missing={missing}")
+    lost_passes = sorted(set(baseline_groups["pass"]) - set(report_groups["pass"]))
+    if lost_passes:
+        mismatches.append(f"lost baseline passes: {lost_passes}")
+
+    allowed_failures = set(baseline_groups["bug"]) | set(baseline_groups["known_unsupported"])
+    for status in ("bug", "invalid_fixture"):
+        unexpected = sorted(set(report_groups[status]) - allowed_failures)
         if unexpected:
-            details.append(f"unexpected={unexpected}")
-        mismatches.append(f"{status} cases differ ({', '.join(details)})")
+            mismatches.append(f"new {status} cases: {unexpected}")
+
+    baseline_ids = {case_id for case_ids in baseline_groups.values() for case_id in case_ids}
+    report_ids = {case_id for case_ids in report_groups.values() for case_id in case_ids}
+    missing_cases = sorted(baseline_ids - report_ids)
+    if missing_cases:
+        mismatches.append(f"missing baseline cases: {missing_cases}")
     return mismatches
 
 
