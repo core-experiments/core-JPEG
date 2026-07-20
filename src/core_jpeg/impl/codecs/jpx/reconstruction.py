@@ -73,7 +73,12 @@ def decode_tile_payload_stream(
         packet_headers=packet_headers,
         packet_header_offset=packet_header_offset,
         included_packet_keys=included_packet_keys,
+        # Nsop is tile-scoped (ISO/IEC 15444-1 A.8.1), not tile-part-scoped.
+        packet_sequence_offset=int(tile.get("packet_sequence", 0)),
     )
+    tile["packet_sequence"] = (
+        int(tile.get("packet_sequence", 0)) + int(consumed.positions)
+    ) % 65536
     decode_tile_components(image, tile, params)
     return consumed
 

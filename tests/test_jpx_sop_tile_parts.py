@@ -1,16 +1,22 @@
 from __future__ import annotations
 
+import pytest
+
 from core_jpeg.impl.codecs.jpx.codestream import JpxImage
 from core_jpeg.impl.codecs.jpx.params import JpxCodingParams
+from core_jpeg.impl.errors import JpegParseError
 
 
 def _sop(sequence: int) -> bytes:
-    return b"\xff\x91\x00\x04" + sequence.to_bytes(2, "big")
+    return b"\xff\x91\x00\x04" + (sequence % 65536).to_bytes(2, "big")
 
 
-def _empty_sop_packet(sequence: int = 0) -> bytes:
-    # Empty packet header (zero inclusion bit, byte-aligned) with a leading SOP.
-    return _sop(sequence) + b"\x00"
+def _empty_packet(*, sequence: int | None = None) -> bytes:
+    # Empty packet header (zero inclusion bit, byte-aligned).
+    body = b"\x00"
+    if sequence is None:
+        return body
+    return _sop(sequence) + body
 
 
 def _image_with_sop_layers(num_layers: int = 2) -> tuple[JpxImage, JpxCodingParams]:
@@ -48,22 +54,50 @@ def _image_with_sop_layers(num_layers: int = 2) -> tuple[JpxImage, JpxCodingPara
     return image, params
 
 
-def test_sop_sequence_restarts_for_each_tile_part() -> None:
+def test_sop_sequence_continues_across_tile_parts() -> None:
+    # ISO/IEC 15444-1 A.8.1: Nsop is scoped to the coded tile, not each tile-part.
     image, params = _image_with_sop_layers(num_layers=2)
 
-    first = image.decode_tile_payload_stream(
-        0,
-        _empty_sop_packet(0),
-        params,
-    )
-    second = image.decode_tile_payload_stream(
-        0,
-        _empty_sop_packet(0),
-        params,
-    )
+    first = image.decode_tile_payload_stream(0, _empty_packet(sequence=0), params)
+    second = image.decode_tile_payload_stream(0, _empty_packet(sequence=1), params)
 
     assert first.positions == 1
     assert first.body == 7
     assert second.positions == 1
     assert second.body == 7
-    assert "packet_sequence" not in image.tiles[0]
+    assert image.tiles[0]["packet_sequence"] == 2
+
+
+def test_sop_sequence_restart_within_tile_is_rejected() -> None:
+    image, params = _image_with_sop_layers(num_layers=2)
+
+    image.decode_tile_payload_stream(0, _empty_packet(sequence=0), params)
+    with pytest.raises(JpegParseError, match="invalid JPX SOP packet sequence"):
+        image.decode_tile_payload_stream(0, _empty_packet(sequence=0), params)
+
+
+def test_sop_sequence_advances_for_packets_without_marker() -> None:
+    # SOP may be omitted for individual packets, but Nsop still increments.
+    image, params = _image_with_sop_layers(num_layers=3)
+
+    first = image.decode_tile_payload_stream(0, _empty_packet(), params)
+    second = image.decode_tile_payload_stream(0, _empty_packet(), params)
+    third = image.decode_tile_payload_stream(0, _empty_packet(sequence=2), params)
+
+    assert first.positions == 1
+    assert second.positions == 1
+    assert third.positions == 1
+    assert image.tiles[0]["packet_sequence"] == 3
+
+
+def test_sop_sequence_wraps_at_65536() -> None:
+    image, params = _image_with_sop_layers(num_layers=2)
+    image.tiles[0] = image.ensure_tile(0, params)
+    image.tiles[0]["packet_sequence"] = 65535
+
+    first = image.decode_tile_payload_stream(0, _empty_packet(sequence=65535), params)
+    second = image.decode_tile_payload_stream(0, _empty_packet(sequence=0), params)
+
+    assert first.positions == 1
+    assert second.positions == 1
+    assert image.tiles[0]["packet_sequence"] == 1

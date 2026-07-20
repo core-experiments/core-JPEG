@@ -67,6 +67,7 @@ class JpxImage:
         "tlm_next_index",
         "plm_next_index",
         "plm_packet_lengths",
+        "plm_consume_index",
         "ppm_markers",
         "packed_packet_headers",
         "components_data",
@@ -113,7 +114,9 @@ class JpxImage:
         self.tile_part_lengths: list[tuple[int, int]] = []
         self.tlm_next_index = 0
         self.plm_next_index = 0
-        self.plm_packet_lengths: list[int] = []
+        # One packet-length list per tile-part, in codestream order (ISO A.7.2).
+        self.plm_packet_lengths: list[list[int]] = []
+        self.plm_consume_index = 0
         self.ppm_markers: dict[int, bytes] = {}
         self.packed_packet_headers: bytes | None = None
         self.components_data: list[dict[Any, Any]] = []

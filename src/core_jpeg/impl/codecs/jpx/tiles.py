@@ -8,6 +8,7 @@ from typing import Any
 
 from core_jpeg.impl.codecs.jpx.output import (
     component_h_sep,
+    component_samples,
     component_v_sep,
     tile_rgb_samples,
 )
@@ -89,6 +90,8 @@ def validate_tile_part_completion(
     seen_parts = sum(index + 1 for index in tile_part_indices.values())
     if image.tile_part_lengths and seen_parts != len(image.tile_part_lengths):
         raise JpegParseError("JPX codestream tile-parts do not match TLM")
+    if image.plm_packet_lengths and image.plm_consume_index != len(image.plm_packet_lengths):
+        raise JpegParseError("JPX codestream tile-parts do not match PLM")
 
 
 def decode_tile_parts(image: Any, parts: list[JpxTilePart]) -> None:
@@ -117,12 +120,18 @@ def decode_tile_parts(image: Any, parts: list[JpxTilePart]) -> None:
         return
     config = worker_config(image)
     jobs = [(config, tile_index, tile_parts) for tile_index, tile_parts in grouped.items()]
+    # Materialize all worker results before mutating the parent image so a late
+    # failure cannot leave a partially filled decoded_tile_data / tiles state.
     with InterpreterPoolExecutor(max_workers=worker_count) as executor:
-        for tile_index, channels, tile_data in executor.map(
-            _decode_jpx_tile_parts_interpreter_job,
-            jobs,
-        ):
-            image.decoded_tile_data[tile_index] = (channels, tile_data)
+        results = list(executor.map(_decode_jpx_tile_parts_interpreter_job, jobs))
+    for tile_index, channels, tile_data, component_planes, coding_params in results:
+        image.decoded_tile_data[tile_index] = (channels, tile_data)
+        install_decoded_tile_component_planes(
+            image,
+            tile_index,
+            component_planes,
+            coding_params,
+        )
 
 
 def decode_tile_parts_with_ppm(
@@ -381,9 +390,30 @@ def component_tile_bounds(
     )
 
 
+def install_decoded_tile_component_planes(
+    image: Any,
+    tile_index: int,
+    component_planes: list[list[int | float]],
+    coding_params: JpxCodingParams,
+) -> None:
+    """Populate parent tile component LL samples from a parallel worker result."""
+    tile = ensure_tile(image, tile_index, coding_params)
+    tile["coding_params"] = coding_params
+    components: list[TileComponent] = tile["components"]
+    if len(component_planes) != len(components):
+        raise JpegParseError("JPX parallel tile component count mismatch")
+    for component, samples in zip(components, component_planes, strict=True):
+        if not component.resolutions:
+            continue
+        ll = component.resolutions[0].subbands[0]
+        ll.samples = list(samples)
+        ll.width = component.width
+        ll.height = component.height
+
+
 def _decode_jpx_tile_parts_interpreter_job(
     job: tuple[dict[str, Any], int, list[JpxTilePart]],
-) -> tuple[int, int, bytes]:
+) -> tuple[int, int, bytes, list[list[int | float]], JpxCodingParams]:
     from core_jpeg.impl.codecs.jpx.codestream import JpxImage
 
     config, tile_index, tile_parts = job
@@ -410,4 +440,5 @@ def _decode_jpx_tile_parts_interpreter_job(
         params.multiple_component_transform,
         params.reversible,
     )
-    return tile_index, channels, tile_data
+    component_planes = [list(component_samples(component)) for component in tile["components"]]
+    return tile_index, channels, tile_data, component_planes, params

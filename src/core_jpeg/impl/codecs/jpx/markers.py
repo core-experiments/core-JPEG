@@ -99,8 +99,18 @@ def read_tile_part_header(
             raise JpegParseError("invalid JPX tile-part length")
     if payload_end < payload_start:
         raise JpegParseError("invalid JPX tile payload")
-    if packet_lengths and sum(packet_lengths) != payload_end - payload_start:
+    payload_size = payload_end - payload_start
+    if packet_lengths and sum(packet_lengths) != payload_size:
         raise JpegParseError("JPX PLT packet lengths do not match tile-part payload")
+    if image.plm_consume_index < len(image.plm_packet_lengths):
+        plm_lengths = image.plm_packet_lengths[image.plm_consume_index]
+        if sum(plm_lengths) != payload_size:
+            raise JpegParseError("JPX PLM packet lengths do not match tile-part payload")
+        if packet_lengths and tuple(plm_lengths) != tuple(packet_lengths):
+            raise JpegParseError("JPX PLM and PLT packet lengths disagree")
+        image.plm_consume_index += 1
+    elif image.plm_packet_lengths:
+        raise JpegParseError("JPX tile-part has no matching PLM entry")
     return JpxTilePartHeader(
         tile_index=tile_index,
         tile_part_index=tile_part_index,
@@ -214,7 +224,8 @@ def parse_plm(image: Any, br: BitStream) -> None:
         block_length = payload.read_byte()
         if block_length == 0 or payload.byte + block_length > len(payload.data):
             raise JpegParseError("invalid JPX PLM packet-length block")
-        image.plm_packet_lengths.extend(
+        # Each Nplm block describes one tile-part's packet lengths in order.
+        image.plm_packet_lengths.append(
             parse_packet_lengths(payload.read_bytes(block_length), "PLM")
         )
 
