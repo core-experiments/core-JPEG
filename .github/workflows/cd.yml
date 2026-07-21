@@ -1,0 +1,187 @@
+name: CD
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: "0.11.28"
+          python-version: "3.14"
+          enable-cache: true
+
+      - name: Run lint checks
+        run: |
+          uv run --locked --group lint ruff check .
+          uv run --locked --group lint mypy
+
+  unit-tests:
+    name: unit tests (${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: "0.11.28"
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+
+      - name: Run unit tests
+        run: uv run --locked --group dev pytest -m "not smoke"
+
+  smoke-tests:
+    name: smoke tests (${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: "0.11.28"
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+
+      - name: Run smoke tests
+        run: uv run --locked --group dev pytest -m smoke --no-cov
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    needs: [lint, unit-tests, smoke-tests]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Verify tag matches package version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG=$(sed -n 's/^version = "\(.*\)"/\1/p' pyproject.toml | head -1)
+          echo "tag=${TAG} package=${PKG}"
+          test "$TAG" = "$PKG"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: "0.11.28"
+          python-version: "3.14"
+          enable-cache: true
+
+      - name: Build sdist and wheel
+        run: uv build -o dist
+
+      - name: Assert portable artifacts and checksums
+        run: |
+          set -euo pipefail
+          ls -la dist
+          test "$(find dist -name 'core_jpeg-*-py3-none-any.whl' | wc -l)" -eq 1
+          test "$(find dist -name 'core_jpeg-*.tar.gz' | wc -l)" -eq 1
+          (
+            cd dist
+            sha256sum *.whl *.tar.gz > SHA256SUMS
+            sha256sum --check SHA256SUMS
+          )
+          cat dist/SHA256SUMS
+
+      - name: Upload python-dist artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: python-dist
+          path: dist/
+          if-no-files-found: error
+
+  verify-install:
+    name: verify install (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: [build]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm]
+
+    steps:
+      - name: Download python-dist artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: python-dist
+          path: dist
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: "0.11.28"
+          python-version: "3.14"
+          enable-cache: true
+
+      - name: Verify checksums and install wheel
+        run: |
+          set -euo pipefail
+          cd dist
+          sha256sum --check SHA256SUMS
+          WHEEL=$(echo core_jpeg-*-py3-none-any.whl)
+          uv venv ../.venv
+          uv pip install --python ../.venv/bin/python "$WHEEL"
+
+      - name: Import package from installed wheel
+        run: |
+          .venv/bin/python -c "
+          import core_jpeg
+          assert callable(core_jpeg.decode_jpx)
+          assert callable(core_jpeg.decode_dct)
+          print('core_jpeg import ok on ${{ matrix.os }}')
+          "
+
+  release:
+    name: release
+    runs-on: ubuntu-latest
+    needs: [build, verify-install]
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download python-dist artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: python-dist
+          path: dist
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
+        with:
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
+            dist/SHA256SUMS
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
