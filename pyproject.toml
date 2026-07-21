@@ -1,10 +1,11 @@
 [project]
 name = "core-jpeg"
-version = "0.0.1"
+version = "0.0.2"
 description = "High-performance pure Python JPEG decoding components"
 readme = "README.md"
 authors = [
-    { name = "Kevin Turcios", email = "turcioskevinr@gmail.com" }
+    { name = "Kevin Turcios", email = "turcioskevinr@gmail.com" },
+    { name = "Emily Voss", email = "github@emilyvoss.dev" },
 ]
 license = "AGPL-3.0-only"
 license-files = ["LICENSE.txt"]
